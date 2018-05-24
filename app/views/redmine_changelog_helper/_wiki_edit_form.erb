@@ -1,0 +1,10 @@
+<% if @page and controller_name == 'wiki' and action_name == 'edit' %>
+    <script type="text/javascript">
+      jQuery(document).ready(function ($) {
+        $('#wiki_form .box').append("<p>" +
+            "<label>Is changelog?</label>" +
+            "<input type='checkbox' name='wiki_page[is_changelog]' <%= 'CHECKED' if @page.is_changelog? %>>" +
+            "</p>");
+      });
+    </script>
+<% end %>
