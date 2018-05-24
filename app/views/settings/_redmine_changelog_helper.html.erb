@@ -1,0 +1,21 @@
+<h3>Settings</h3>
+<p>
+  <label>Machines</label>
+  <%= text_area_tag 'settings[machines]', @settings['machines'], escape: false, rows: 10 %>
+  <em class="info">One per line:<br>code:display value</em>
+</p>
+<p>
+  <label>Types</label>
+  <%= text_area_tag 'settings[types]', @settings['types'], escape: false, rows: 10 %>
+  <em class="info">One per line:<br>code:display value</em>
+</p>
+<p>
+  <label>SubTypes</label>
+  <%= text_area_tag 'settings[subtypes]', @settings['subtypes'], escape: false, rows: 10 %>
+  <em class="info">One per line:<br>code:display value</em>
+</p>
+<p>
+  <label>Importance level</label>
+  <%= text_area_tag 'settings[importances]', @settings['importances'], escape: false, rows: 10 %>
+  <em class="info">One per line:<br>code:display value</em>
+</p>

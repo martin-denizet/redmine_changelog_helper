@@ -1,0 +1,372 @@
+jQuery(document).ready(function ($) {
+  function extract_data(content, tag) {
+    var regexp = new RegExp('\\[' + tag + ':(\\w*)\\]?', 'g');
+    var parts = regexp.exec(content);
+    if (Array.isArray(parts) && parts.length > 1) {
+      return parts[1];
+    }
+    return '';
+  }
+
+
+  function render_changelog_lines(target) {
+    //Changelines
+    target.find('.toc ul').addClass('toc-ul');
+    target.find('ul.toc').addClass('toc-ul');
+    target.find('ul').not('.toc-ul').addClass('changelog-lines-original-container');
+    target.find('ul.changelog-lines-original-container').after('<div class="changelog-lines-container"></div>');
+    target.find('ul.changelog-lines-original-container').find('li').each(function () {
+
+      var text = $(this).text();
+      var machine = extract_data(text, 'machine');
+      var type = extract_data(text, 'type');
+      var subtype = extract_data(text, 'subtype');
+      var importance = extract_data(text, 'importance');
+      text = text.replace('[machine:' + machine + ']', '');
+      text = text.replace('[type:' + type + ']', '');
+      text = text.replace('[subtype:' + subtype + ']', '');
+      text = text.replace('[importance:' + importance + ']', '');
+      if (text.charAt(0) == ':') {
+        text = text.substring(1);
+      }
+
+      $(this).html('<b>' + subtype_key_to_string(subtype) +
+          importance_key_to_string(importance) + '</b> ' + text);
+
+      $(this).data('machine-name', machine_key_to_string(machine));
+
+      $(this).data('machine', machine);
+      $(this).data('type', type);
+      $(this).data('type-name', type_key_to_string(type));
+      $(this).data('subtype', subtype);
+      $(this).data('importance', importance);
+
+      $(this).addClass('changelog-line');
+      $(this).addClass('changelog-line-type-' + type);
+      $(this).addClass('changelog-line-subtype-' + subtype);
+      $(this).addClass('changelog-line-importance-' + importance);
+      //TODO: Check if the line is an actual changelog line
+    });
+  }
+
+  //Process changelog display
+  function render_changelog(target) {
+    render_changelog_lines(target);
+    //Versions
+    var version = '';
+    var is_latest_branch = true;
+    var latest_branch = '';
+    target.find('h2').each(function () {
+      $(this).addClass('changelog-version');
+      //Insert wrapper before h2
+      var wrapper = $('<div id="' + $(this).attr('id') + '-wrapper" class="version-wrapper"></div>').insertBefore($(this));
+      //Extract version
+      var re = /([\d\.]+)/g;
+      var m = re.exec($(this).text());
+      if (Array.isArray(m) && m.length > 0) {
+        version = m[1];
+      }
+      if (version) {
+        $(this).attr('id', 'version-' + version.split('.').join('-'));
+        wrapper.data('version', version);
+        wrapper.data('version-slug', version.split('.').join('-'));
+        $(this).data('version', version);
+      }
+
+      if ($(this).text().trim().length > 0) {
+        if ($(this).text().trim()[0] === '+') {
+          wrapper.data('maintenance-release', true);
+          wrapper.addClass('maintenance-release');
+        } else {
+          wrapper.addClass('main-release');
+        }
+      }
+
+      //Extract branch
+      if (version) {
+        var parts = version.split('.');
+        //At least 1 dot to be recognized as a version
+        if (parts.length > 1) {
+          //Cast to int
+          //All digits but last constitute the branch
+          parts = parts.map(function (x) {
+            return parseInt(x, 10);
+          }).slice(0, -1);
+          var branch = parts.join('.');
+          wrapper.data('branch', branch);
+          //Do we know latest branch?
+          if (!latest_branch) {
+            latest_branch = branch;
+          } else {
+            //Did we change branch?
+            if (latest_branch !== branch) {
+              is_latest_branch = false;
+            }
+          }
+          wrapper.data('branch', branch);
+          //
+          if (is_latest_branch) {
+            wrapper.addClass('latest-branch');
+          } else {
+            wrapper.addClass('not-latest-branch');
+          }
+        }
+      }
+
+      //Elements until the next <hr>
+      $(this).nextUntil('hr').appendTo(wrapper);
+      $(this).next('hr').appendTo(wrapper);
+      //Finally move the heading to wrapper
+      $(this).prependTo(wrapper);
+    });
+
+  }
+
+  function machine_key_to_string(machine) {
+    var machine_name = '';
+    switch (machine) {
+        <% @machines.each do |k,v| %>
+      case '<%=k%>':
+        machine_name = '<%=v%>';
+        break;
+        <% end %>
+    }
+    return machine_name;
+  }
+
+  function type_key_to_string(type) {
+    var type_name = '';
+    switch (type) {
+        <% @types.each do |k,v| %>
+      case '<%=k%>':
+        type_name = '<%=v%>';
+        break;
+        <% end %>
+    }
+    return type_name;
+  }
+
+  function subtype_key_to_string(type) {
+    var subtype_name = '';
+    switch (type) {
+        <% @subtypes.each do |k,v| %>
+      case '<%=k%>':
+        subtype_name = '<%=v%>';
+        break;
+        <% end %>
+    }
+    return subtype_name;
+  }
+
+  function importance_key_to_string(type) {
+    var importance_name = '';
+    switch (type) {
+        <% @importances.each do |k,v| %>
+      case '<%=k%>':
+        importance_name = '<%=v%>';
+        break;
+        <% end %>
+    }
+    return importance_name;
+  }
+
+  function sort_by_type(a, b) {
+    var av = $(a).data('type-name');
+    var bv = $(b).data('type-name');
+    if (av < bv) return -1;
+    if (av > bv) return 1;
+    return 0;
+  }
+
+  /**
+   * Sort changelog line to group them by machine
+   */
+  function sort_changelog_lines() {
+    $('ul.changelog-lines-original-container').each(function () {
+          $(this).find('li.changelog-line').sort(function (a, b) {
+            var av = $(a).data('machine-name');
+            var bv = $(b).data('machine-name');
+            if (av < bv) return -1;
+            if (av > bv) return 1;
+            //Sort lines with identical machine name by type
+            return sort_by_type(a, b);
+          }).appendTo($(this));
+        }
+    );
+    //Group lines by machine
+    $('ul.changelog-lines-original-container').each(function () {
+          var _this = $(this);
+          _this.find('li.changelog-line').each(function () {
+            var machine = $(this).data('machine');
+            var type = $(this).data('type');
+            var container = _this.next('.changelog-lines-container');
+            var add_to_target_class = 'changelog-lines-machine-' + machine;
+            var add_to_target = container.find('ul.' + add_to_target_class);
+            if (add_to_target.length === 0) {
+              //List for machine doesn't exist
+              container.append('<h3 class="changelog-lines-machine-' + machine + '-header">' + machine_key_to_string(machine) + '</h3>');
+              add_to_target = container.append('<ul class="' + add_to_target_class + '"></ul>').find('ul.' + add_to_target_class);
+            }
+            //Now find the type
+            var add_to_type = add_to_target.find('li.type-' + type + ' ul');
+            if (add_to_type.length === 0) {
+              add_to_type = add_to_target.append('<li class="type-' + type + '">' +
+                  '<h4>' + $(this).data('type-name') + '</h4>' +
+                  '<ul class="type-line"></ul></li>').find('li.type-' + type + ' ul');
+            }
+            $(this).appendTo(add_to_type)
+          });
+        }
+    );
+  }
+
+  function add_filters(container, filter_target) {
+    //Collect all possible values
+    var types = {};
+    filter_target.find('.changelog-line').each(function () {
+      var type = $(this).data('type');
+      if (type) {
+        if (!types[type]) {
+          types[type] = 0;
+        }
+        types[type] += 1;
+      }
+    });
+
+//          var types_container = container.append('<p><b>Types filter</b><ul></ul></p>');
+//          for (var key in types) {
+//            types_container.append(
+//                '<li><label>' +
+//                '<input type="checkbox" name="changelog_filter_' + key + '" value="' + key + '" data-filter-on="type" class="changelog-filter-checkbox" CHECKED>' +
+//                key +
+//                '(' + types[key] + ')' +
+//                '</label></li>'
+//            );
+//          }
+
+    add_filter(container.append('<p><b>Types filter</b><ul></ul></p>'), 'type', <%=@types.to_json.html_safe%>);
+    add_filter(container.append('<p><b>Subtypes filter</b><ul></ul></p>'), 'subtype', <%=@subtypes.to_json.html_safe%>);
+    add_filter(container.append('<p><b>Importance filter</b><ul></ul></p>'), 'importance', <%=@importances.to_json.html_safe%>);
+
+
+    //Maintenance releases filter
+    container.append('<p><b>Support branches filter</b><ul><li><label>' +
+        '<input type="checkbox" name="maintenance-releases-filter-hide" value="hide" id="maintenance-releases-filter-checkbox" class="maintenance-releases-filter-checkbox" >' +
+        'Hide support branches releases</label>' +
+        '</li></ul></p>');
+
+    $('#maintenance-releases-filter-checkbox').on('change', function () {
+      var hide_support_branch_releases = $(this).is(':checked');
+      //Hide all
+      $('.version-wrapper').hide();
+      //Show required
+      //Always show main releases and its maintenance releases
+      $('.version-wrapper.main-release').show();
+      $('.version-wrapper.maintenance-release.latest-branch').show();
+
+      $('.version-wrapper.maintenance-release.not-latest-branch').toggle(!hide_support_branch_releases);
+    });
+
+    //Versions filter
+    container.append('<p><b>Versions filter</b><ul><li>' +
+        '<label>' +
+        'From:' +
+        '<select name="select-version-from" id="select-version-from">' +
+        '</select>' +
+        '</label>' +
+        '</li><li>' +
+        '<label>' +
+        'To:' +
+        '<select name="select-version-to" id="select-version-to">' +
+        '</select>' +
+        '</li>' +
+        '</ul></p>');
+
+    //Collect all versions
+    var versions = [];
+    var version_elements = $('.version-wrapper');
+    version_elements.each(function (index, element) {
+      var version = $(this).data('version');
+      versions.push(version);
+      if (index < (version_elements.length - 1)) {
+        // "From" cannot have the last version
+        $('#select-version-from').append('<option value="' + version + '">' + version + '</option>');
+      }
+      if (index !== 0) {
+        // "To" cannot have first version
+        $('#select-version-to').append('<option value="' + version + '">' + version + '</option>');
+      }
+    });
+    $('#select-version-to option:last').attr("selected", "selected");
+    $('#select-version-to, #select-version-from').on('change', filter_versions);
+  }
+
+  /**
+   * Triggered when select box is changed
+   */
+  function filter_versions() {
+    var version_from = $('#select-version-from').val();
+    var version_to = $('#select-version-to').val();
+    var display = false;
+    $('.version-wrapper').each(function () {
+      var version = $(this).data('version');
+      if (version == version_from) {
+        display = true;
+      }
+      $(this).toggle(display);
+      if (version == version_to) {
+        display = false;
+      }
+    });
+  }
+
+  function add_filter(to, prop, values) {
+    for (var k in values) {
+      var v = values[k];
+      to.append(
+          '<li><label>' +
+          '<input type="checkbox" name="changelog_filter_' + k + '" value="' + k + '"' +
+          ' id="changelog-filter-checkbox-' + prop + '-' + k + '"' +
+          ' data-filter-on="' + prop + '" data-key="' + k + '" class="changelog-filter-checkbox" CHECKED>' +
+          v +
+          '</label></li>'
+      );
+    }
+  }
+
+  $(document).on('change', 'input.changelog-filter-checkbox', function () {
+
+    $('.changelog-line').each(function () {
+      var line = $(this);
+      var values = {
+        machine: line.data('machine'),
+        type: line.data('type'),
+        subtype: line.data('subtype'),
+        importance: line.data('importance')
+      };
+      // Check if all relevant checkboxes are checked
+      var visible = true;
+      const props = ['type', 'subtype', 'importance'];
+      for (var prop_i in props) {
+        var prop = props[prop_i];
+        var cb = $('#changelog-filter-checkbox-' + prop + '-' + values[prop]);
+        if (cb.length > 0 && !cb.is(':checked')) {
+          visible = false;
+          break;
+        }
+      }
+      if (visible) {
+        line.show();
+      } else {
+        line.hide();
+      }
+    });
+
+  });
+
+  //render_changelog($('fieldset.preview'));
+  render_changelog($('.wiki.wiki-page'));
+  sort_changelog_lines();
+  add_filters($('#sidebar'), $('.wiki.wiki-page'));
+})
+;
