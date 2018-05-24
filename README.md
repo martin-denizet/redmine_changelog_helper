@@ -1,10 +1,11 @@
 # Redmine Changelog Helper
 
-Work sponsored by MeiSystem at http://meisystem.com/
+Plugin sponsored by MeiSystem at http://meisystem.com/
 
 ## Features
 
-* Helps formating chanelog input
+* Helps formatting changelog input
+* Hierarchical display of changes 
 
 ## Compatibility
 
@@ -30,6 +31,9 @@ The installation is now finished and you will be able to use the plugin after yo
 
 Please check the plugin configuration page before using it.
 
+## Usage
+
+Edit a Wiki page and tick "Is changelog page" checkbox.
 
 ## How to contribute
 
