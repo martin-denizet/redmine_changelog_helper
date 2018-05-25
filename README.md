@@ -17,7 +17,8 @@ Tested working with Ruby 2.3.x on:
 
 First download the plugin using git, open a terminal in your Redmine installation directory:
 
-```git clone git@github.com:martin-denizet/redmine_changelog_helper.git ./plugins/```
+```cd ./plugins/
+git clone https://github.com/martin-denizet/redmine_changelog_helper.git```
 
 
 Run the database migrations:
