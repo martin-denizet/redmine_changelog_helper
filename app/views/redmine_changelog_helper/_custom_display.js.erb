@@ -204,13 +204,14 @@ jQuery(document).ready(function ($) {
             var add_to_target = container.find('ul.' + add_to_target_class);
             if (add_to_target.length === 0) {
               //List for machine doesn't exist
-              container.append('<h3 class="changelog-lines-machine-' + machine + '-header">' + machine_key_to_string(machine) + '</h3>');
-              add_to_target = container.append('<ul class="' + add_to_target_class + '"></ul>').find('ul.' + add_to_target_class);
+              container.append('<h3 class="changelog-lines-machine-' + machine + '-header changelog-lines-machine-header">' + machine_key_to_string(machine) + '</h3>');
+              add_to_target = container.append('<ul class="' + add_to_target_class + ' changelog-lines-machine"></ul>').find('ul.' + add_to_target_class);
+              add_to_target.data('machine',machine);
             }
             //Now find the type
             var add_to_type = add_to_target.find('li.type-' + type + ' ul');
             if (add_to_type.length === 0) {
-              add_to_type = add_to_target.append('<li class="type-' + type + '">' +
+              add_to_type = add_to_target.append('<li class="type-line-container type-' + type + '">' +
                   '<h4>' + $(this).data('type-name') + '</h4>' +
                   '<ul class="type-line"></ul></li>').find('li.type-' + type + ' ul');
             }
@@ -359,6 +360,22 @@ jQuery(document).ready(function ($) {
         line.show();
       } else {
         line.hide();
+      }
+    });
+
+    //Show all containers
+    $('.changelog-lines-machine-header').show();
+    $('.type-line-container').show();
+    //Then hide empty types
+    $('.type-line-container').each(function () {
+      if ($(this).find('.changelog-line:visible').length === 0) {
+        $(this).hide();
+      }
+    });
+    $('.changelog-lines-machine').each(function () {
+      var machine = $(this).data('machine');
+      if ($(this).find('.type-line-container:visible').length === 0) {
+        $(this).parent().find('.changelog-lines-machine-' + machine + '-header').hide();
       }
     });
 
