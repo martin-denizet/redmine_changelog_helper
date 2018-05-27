@@ -17,7 +17,7 @@ jQuery(document).ready(function ($) {
     target.find('ul.changelog-lines-original-container').after('<div class="changelog-lines-container"></div>');
     target.find('ul.changelog-lines-original-container').find('li').each(function () {
 
-      var text = $(this).text();
+      var text = $(this).html();
       var machine = extract_data(text, 'machine');
       var type = extract_data(text, 'type');
       var subtype = extract_data(text, 'subtype');
@@ -49,6 +49,13 @@ jQuery(document).ready(function ($) {
     });
   }
 
+  function render_dates(target) {
+    target.find('.version-wrapper').each(function () {
+      var date = $(this).find('p:first');
+      date.replaceWith($('<h4 class="version-date">' + date.html() + '</h4>'));
+    });
+  }
+
   //Process changelog display
   function render_changelog(target) {
     render_changelog_lines(target);
@@ -59,7 +66,7 @@ jQuery(document).ready(function ($) {
     target.find('h2').each(function () {
       $(this).addClass('changelog-version');
       //Insert wrapper before h2
-      var wrapper = $('<div id="' + $(this).attr('id') + '-wrapper" class="version-wrapper"></div>').insertBefore($(this));
+      var wrapper = $('<div id="undefined-version-wrapper" class="version-wrapper"></div>').insertBefore($(this));
       //Extract version
       var re = /([\d\.]+)/g;
       var m = re.exec($(this).text());
@@ -67,7 +74,8 @@ jQuery(document).ready(function ($) {
         version = m[1];
       }
       if (version) {
-        $(this).attr('id', 'version-' + version.split('.').join('-'));
+        $(this).attr('id', 'version-' + version.split('.').join('-') + '-header');
+        wrapper.attr('id', 'version-' + version.split('.').join('-') + '-wrapper');
         wrapper.data('version', version);
         wrapper.data('version-slug', version.split('.').join('-'));
         $(this).data('version', version);
@@ -204,13 +212,14 @@ jQuery(document).ready(function ($) {
             var add_to_target = container.find('ul.' + add_to_target_class);
             if (add_to_target.length === 0) {
               //List for machine doesn't exist
-              container.append('<h3 class="changelog-lines-machine-' + machine + '-header">' + machine_key_to_string(machine) + '</h3>');
-              add_to_target = container.append('<ul class="' + add_to_target_class + '"></ul>').find('ul.' + add_to_target_class);
+              container.append('<h3 class="changelog-lines-machine-' + machine + '-header changelog-lines-machine-header">' + machine_key_to_string(machine) + '</h3>');
+              add_to_target = container.append('<ul class="' + add_to_target_class + ' changelog-lines-machine"></ul>').find('ul.' + add_to_target_class);
+              add_to_target.data('machine', machine);
             }
             //Now find the type
             var add_to_type = add_to_target.find('li.type-' + type + ' ul');
             if (add_to_type.length === 0) {
-              add_to_type = add_to_target.append('<li class="type-' + type + '">' +
+              add_to_type = add_to_target.append('<li class="type-line-container type-' + type + '">' +
                   '<h4>' + $(this).data('type-name') + '</h4>' +
                   '<ul class="type-line"></ul></li>').find('li.type-' + type + ' ul');
             }
@@ -362,10 +371,32 @@ jQuery(document).ready(function ($) {
       }
     });
 
+    //Show all containers
+    $('.changelog-lines-machine-header').show();
+    $('.type-line-container').show();
+    $('.version-wrapper').show();
+    //Then hide empty types
+    $('.type-line-container').each(function () {
+      if ($(this).find('.changelog-line:visible').length === 0) {
+        $(this).hide();
+      }
+    });
+    $('.changelog-lines-machine').each(function () {
+      var machine = $(this).data('machine');
+      if ($(this).find('.type-line-container:visible').length === 0) {
+        $(this).parent().find('.changelog-lines-machine-' + machine + '-header').hide();
+      }
+    });
+    $('.version-wrapper').each(function () {
+      if ($(this).find('.type-line-container:visible').length === 0) {
+        $(this).hide();
+      }
+    });
   });
 
   //render_changelog($('fieldset.preview'));
   render_changelog($('.wiki.wiki-page'));
+  render_dates($('.wiki.wiki-page'));
   sort_changelog_lines();
   add_filters($('#sidebar'), $('.wiki.wiki-page'));
 })
