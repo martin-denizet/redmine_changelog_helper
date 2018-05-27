@@ -17,7 +17,7 @@ jQuery(document).ready(function ($) {
     target.find('ul.changelog-lines-original-container').after('<div class="changelog-lines-container"></div>');
     target.find('ul.changelog-lines-original-container').find('li').each(function () {
 
-      var text = $(this).text();
+      var text = $(this).html();
       var machine = extract_data(text, 'machine');
       var type = extract_data(text, 'type');
       var subtype = extract_data(text, 'subtype');
