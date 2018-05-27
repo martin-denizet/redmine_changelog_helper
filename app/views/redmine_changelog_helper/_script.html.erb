@@ -8,6 +8,11 @@
     <script type="text/javascript">
       <%= render partial: 'redmine_changelog_helper/custom_display', formats: 'js' %>
     </script>
+    <style type="text/css">
+      .changelog-lines-container, h4.version-date{
+        margin-left: 20px;
+      }
+    </style>
 <% end %>
 <%= render partial: 'redmine_changelog_helper/wiki_edit_form' %>
 <% if @page and @page.is_changelog? and controller_name == 'wiki' and action_name == 'edit' %>

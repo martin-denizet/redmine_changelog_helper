@@ -49,6 +49,13 @@ jQuery(document).ready(function ($) {
     });
   }
 
+  function render_dates(target) {
+    target.find('.version-wrapper').each(function () {
+      var date = $(this).find('p:first');
+      date.replaceWith($('<h4 class="version-date">' + date.html() + '</h4>'));
+    });
+  }
+
   //Process changelog display
   function render_changelog(target) {
     render_changelog_lines(target);
@@ -389,6 +396,7 @@ jQuery(document).ready(function ($) {
 
   //render_changelog($('fieldset.preview'));
   render_changelog($('.wiki.wiki-page'));
+  render_dates($('.wiki.wiki-page'));
   sort_changelog_lines();
   add_filters($('#sidebar'), $('.wiki.wiki-page'));
 })
