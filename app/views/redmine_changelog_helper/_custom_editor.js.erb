@@ -155,7 +155,8 @@ jQuery(document).ready(function ($) {
 
         function change_line_parser(lines_string) {
             var lines = [];
-            var regexp_version_number = /^(?!h2\.).+$/gm;
+            // Match start line until next line or en of version block(----)
+            var regexp_version_number = /\* \[machine:[\s\S]*?(?=\n.*?(\* \[machine:)|[\-]{4}|$)/g;
             var m;
             do {
                 m = regexp_version_number.exec(lines_string);

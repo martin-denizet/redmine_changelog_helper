@@ -3,6 +3,7 @@
       jQuery(document).ready(function ($) {
         $('#wiki_form .box').append("<p>" +
             "<label>Is changelog?</label>" +
+            "<input type='hidden' name='wiki_page[is_changelog] value='false'>" +
             "<input type='checkbox' name='wiki_page[is_changelog]' <%= 'CHECKED' if @page.is_changelog? %>>" +
             "</p>");
       });
