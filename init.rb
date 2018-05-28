@@ -15,7 +15,7 @@ Redmine::Plugin.register :redmine_changelog_helper do
   name 'Redmine Changelog helper'
   author 'Martin DENIZET'
   description 'JavaScript helper to standardize Changelog editing as a Wiki page'
-  version '0.1.2'
+  version '0.1.3'
   url 'https://github.com/martin-denizet/redmine_changelog_helper'
   author_url 'https://uptimeowl.io'
 
