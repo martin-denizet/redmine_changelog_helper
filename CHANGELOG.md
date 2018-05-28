@@ -1,5 +1,12 @@
 #CHANGELOG
 
+## [0.1.3] - 2018-05-28
+
+### Fixed
+
+- Multi-lines breaking
+- Could not disable is_changelog in wiki page
+
 ## [0.1.2] - 2018-05-27
 
 ### Added
