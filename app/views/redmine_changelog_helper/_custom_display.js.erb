@@ -1,4 +1,10 @@
 jQuery(document).ready(function ($) {
+  // Values for sorting
+  var importance_map = <%= @importances.to_json.html_safe %>;
+  var machine_map = <%= @machines.to_json.html_safe %>;
+  var type_map = <%= @types.to_json.html_safe %>;
+  var subtype_map = <%= @subtypes.to_json.html_safe %>;
+
   function extract_data(content, tag) {
     var regexp = new RegExp('\\[' + tag + ':(\\w*)\\]?', 'g');
     var parts = regexp.exec(content);
@@ -52,7 +58,12 @@ jQuery(document).ready(function ($) {
   function render_dates(target) {
     target.find('.version-wrapper').each(function () {
       var date = $(this).find('p:first');
-      date.replaceWith($('<h4 class="version-date">' + date.html() + '</h4>'));
+      $(this).find('h2.changelog-version').data('date',date);
+      $(this).find('h2.changelog-version').html(
+          $(this).find('h2.changelog-version').html()+' <small><em class="version-date">' + date.html() + '</em></small>'
+      );
+      date.remove()
+//      date.replaceWith($('<h4 class="version-date">' + date.html() + '</h4>'));
     });
   }
 
@@ -192,10 +203,10 @@ jQuery(document).ready(function ($) {
   function sort_changelog_lines() {
     $('ul.changelog-lines-original-container').each(function () {
           $(this).find('li.changelog-line').sort(function (a, b) {
-            var av = $(a).data('machine-name');
-            var bv = $(b).data('machine-name');
-            if (av < bv) return -1;
-            if (av > bv) return 1;
+            var av = Object.keys(machine_map).indexOf($(a).data('machine'));
+            var bv = Object.keys(machine_map).indexOf($(b).data('machine'));
+            if (av < bv) return 1;
+            if (av > bv) return -1;
             //Sort lines with identical machine name by type
             return sort_by_type(a, b);
           }).appendTo($(this));
@@ -208,22 +219,22 @@ jQuery(document).ready(function ($) {
             var machine = $(this).data('machine');
             var type = $(this).data('type');
             var container = _this.next('.changelog-lines-container');
-            var add_to_target_class = 'changelog-lines-machine-' + machine;
-            var add_to_target = container.find('ul.' + add_to_target_class);
-            if (add_to_target.length === 0) {
-              //List for machine doesn't exist
-              container.append('<h3 class="changelog-lines-machine-' + machine + '-header changelog-lines-machine-header">' + machine_key_to_string(machine) + '</h3>');
-              add_to_target = container.append('<ul class="' + add_to_target_class + ' changelog-lines-machine"></ul>').find('ul.' + add_to_target_class);
-              add_to_target.data('machine', machine);
-            }
-            //Now find the type
-            var add_to_type = add_to_target.find('li.type-' + type + ' ul');
-            if (add_to_type.length === 0) {
-              add_to_type = add_to_target.append('<li class="type-line-container type-' + type + '">' +
-                  '<h4>' + $(this).data('type-name') + '</h4>' +
-                  '<ul class="type-line"></ul></li>').find('li.type-' + type + ' ul');
-            }
-            $(this).appendTo(add_to_type)
+//            var add_to_target_class = 'changelog-lines-machine-' + machine;
+//            var add_to_target = container.find('ul.' + add_to_target_class);
+//            if (add_to_target.length === 0) {
+//              //List for machine doesn't exist
+//              //container.append('<h3 class="changelog-lines-machine-' + machine + '-header changelog-lines-machine-header">' + machine_key_to_string(machine) + '</h3>');
+//              add_to_target = container.append('<ul class="' + add_to_target_class + ' changelog-lines-machine"></ul>').find('ul.' + add_to_target_class);
+//              add_to_target.data('machine', machine);
+//            }
+//            //Now find the type
+//            var add_to_type = add_to_target.find('li.type-' + type + ' ul');
+//            if (add_to_type.length === 0) {
+//              add_to_type = add_to_target.append(
+//                  '<h4>' + $(this).data('type-name') + '</h4>' +
+//                  '<ul class="type-line"></ul>').find('li.type-' + type + ' ul');
+//            }
+            $(this).appendTo(container)
           });
         }
     );
@@ -231,16 +242,16 @@ jQuery(document).ready(function ($) {
 
   function add_filters(container, filter_target) {
     //Collect all possible values
-    var types = {};
-    filter_target.find('.changelog-line').each(function () {
-      var type = $(this).data('type');
-      if (type) {
-        if (!types[type]) {
-          types[type] = 0;
-        }
-        types[type] += 1;
-      }
-    });
+//    var types = {};
+//    filter_target.find('.changelog-line').each(function () {
+//      var type = $(this).data('type');
+//      if (type) {
+//        if (!types[type]) {
+//          types[type] = 0;
+//        }
+//        types[type] += 1;
+//      }
+//    });
 
 //          var types_container = container.append('<p><b>Types filter</b><ul></ul></p>');
 //          for (var key in types) {
@@ -257,7 +268,66 @@ jQuery(document).ready(function ($) {
     add_filter(container.append('<p><b>Subtypes filter</b><ul></ul></p>'), 'subtype', <%=@subtypes.to_json.html_safe%>);
     add_filter(container.append('<p><b>Importance filter</b><ul></ul></p>'), 'importance', <%=@importances.to_json.html_safe%>);
 
+    //Grouping
+    container.append('<p><b>Group by</b><ul><li>' +
+        '<select id="grouping-select" name="grouping">' +
+        '<option value="machine">Machine type</option>' +
+        '<option value="subtype">Machine sub-type</option>' +
+        '<option value="importance">Priority</option>' +
+        '<option value="type">Type</option>' +
+        '</select>' +
+        '</li></ul></p>');
+    $('#grouping-select').on('change', function () {
+      var value = $(this).val();
+      group_by(value);
+    });
+    function group_by(property) {
+      $('.lines-group-header').remove();
+      values = eval(property + '_map');
+      $('.changelog-lines-container').each(function () {
+        var container = $(this);
 
+        for (code in values) {
+          label = values[code];
+          css_class = 'group-' + property + '-' + code;
+          var group = container.find('.' + css_class);
+
+          if (group.length === 0) {
+            group = container.append('<div class="lines-group ' + css_class + '" data-label="' + label + '"><h4 class="lines-group-header">' + label + '</h4></div>');
+          } else {
+            group.prepend('<h4 class="lines-group-header">' + label + '</h4>')
+          }
+        }
+        container.find('.changelog-line').each(function () {
+          code = $(this).data(property);
+          css_class = '.group-' + property + '-' + code;
+          $(this).appendTo(container.find(css_class));
+        });
+      });
+      //Delete empty groups
+      $('.changelog-lines-container').find(".lines-group:not(:has(.changelog-line))").remove();
+    }
+
+    group_by($('#grouping-select').val());
+    //Sorting
+    container.append('<p><b>Sort by</b><ul><li>' +
+        '<select id="sorting-select" name="sorting">' +
+        '<option value="machine">Machine type</option>' +
+        '<option value="subtype">Machine sub-type</option>' +
+        '<option value="importance">Priority</option>' +
+        '<option value="type">Type</option>' +
+        '</select>' +
+        '</li></ul></p>');
+    $('#sorting-select').on('change', function () {
+      var value = $(this).val();
+      var values = Object.keys(eval(value + '_map'));
+      $('.lines-group').each(function () {
+        $(this).find('li.changelog-line').sort(function (a, b) {
+          return values.indexOf($(a).data(value)) > values.indexOf($(b).data(value));
+        }).appendTo($(this));
+      });
+    });
+    $('#sorting-select').trigger('change');
     //Maintenance releases filter
     container.append('<p><b>Support branches filter</b><ul><li><label>' +
         '<input type="checkbox" name="maintenance-releases-filter-hide" value="hide" id="maintenance-releases-filter-checkbox" class="maintenance-releases-filter-checkbox" >' +
@@ -372,26 +442,26 @@ jQuery(document).ready(function ($) {
     });
 
     //Show all containers
-    $('.changelog-lines-machine-header').show();
-    $('.type-line-container').show();
-    $('.version-wrapper').show();
-    //Then hide empty types
-    $('.type-line-container').each(function () {
-      if ($(this).find('.changelog-line:visible').length === 0) {
-        $(this).hide();
-      }
-    });
-    $('.changelog-lines-machine').each(function () {
-      var machine = $(this).data('machine');
-      if ($(this).find('.type-line-container:visible').length === 0) {
-        $(this).parent().find('.changelog-lines-machine-' + machine + '-header').hide();
-      }
-    });
-    $('.version-wrapper').each(function () {
-      if ($(this).find('.type-line-container:visible').length === 0) {
-        $(this).hide();
-      }
-    });
+//    $('.changelog-lines-machine-header').show();
+//    $('.type-line-container').show();
+//    $('.version-wrapper').show();
+//    //Then hide empty types
+//    $('.type-line-container').each(function () {
+//      if ($(this).find('.changelog-line:visible').length === 0) {
+//        $(this).hide();
+//      }
+//    });
+////    $('.changelog-lines-machine').each(function () {
+////      var machine = $(this).data('machine');
+////      if ($(this).find('.type-line-container:visible').length === 0) {
+////        $(this).parent().find('.changelog-lines-machine-' + machine + '-header').hide();
+////      }
+////    });
+//    $('.version-wrapper').each(function () {
+//      if ($(this).find('.type-line-container:visible').length === 0) {
+//        $(this).hide();
+//      }
+//    });
   });
 
   //render_changelog($('fieldset.preview'));
