@@ -58,12 +58,11 @@ jQuery(document).ready(function ($) {
   function render_dates(target) {
     target.find('.version-wrapper').each(function () {
       var date = $(this).find('p:first');
-      $(this).find('h2.changelog-version').data('date',date);
+      $(this).find('h2.changelog-version').data('date', date);
       $(this).find('h2.changelog-version').html(
-          $(this).find('h2.changelog-version').html()+' <small><em class="version-date">' + date.html() + '</em></small>'
+          $(this).find('h2.changelog-version').html() + ' <small><em class="version-date">' + date.html() + '</em></small>'
       );
       date.remove()
-//      date.replaceWith($('<h4 class="version-date">' + date.html() + '</h4>'));
     });
   }
 
@@ -219,21 +218,6 @@ jQuery(document).ready(function ($) {
             var machine = $(this).data('machine');
             var type = $(this).data('type');
             var container = _this.next('.changelog-lines-container');
-//            var add_to_target_class = 'changelog-lines-machine-' + machine;
-//            var add_to_target = container.find('ul.' + add_to_target_class);
-//            if (add_to_target.length === 0) {
-//              //List for machine doesn't exist
-//              //container.append('<h3 class="changelog-lines-machine-' + machine + '-header changelog-lines-machine-header">' + machine_key_to_string(machine) + '</h3>');
-//              add_to_target = container.append('<ul class="' + add_to_target_class + ' changelog-lines-machine"></ul>').find('ul.' + add_to_target_class);
-//              add_to_target.data('machine', machine);
-//            }
-//            //Now find the type
-//            var add_to_type = add_to_target.find('li.type-' + type + ' ul');
-//            if (add_to_type.length === 0) {
-//              add_to_type = add_to_target.append(
-//                  '<h4>' + $(this).data('type-name') + '</h4>' +
-//                  '<ul class="type-line"></ul>').find('li.type-' + type + ' ul');
-//            }
             $(this).appendTo(container)
           });
         }
@@ -241,29 +225,6 @@ jQuery(document).ready(function ($) {
   }
 
   function add_filters(container, filter_target) {
-    //Collect all possible values
-//    var types = {};
-//    filter_target.find('.changelog-line').each(function () {
-//      var type = $(this).data('type');
-//      if (type) {
-//        if (!types[type]) {
-//          types[type] = 0;
-//        }
-//        types[type] += 1;
-//      }
-//    });
-
-//          var types_container = container.append('<p><b>Types filter</b><ul></ul></p>');
-//          for (var key in types) {
-//            types_container.append(
-//                '<li><label>' +
-//                '<input type="checkbox" name="changelog_filter_' + key + '" value="' + key + '" data-filter-on="type" class="changelog-filter-checkbox" CHECKED>' +
-//                key +
-//                '(' + types[key] + ')' +
-//                '</label></li>'
-//            );
-//          }
-
     add_filter(container.append('<p><b>Types filter</b><ul></ul></p>'), 'type', <%=@types.to_json.html_safe%>);
     add_filter(container.append('<p><b>Subtypes filter</b><ul></ul></p>'), 'subtype', <%=@subtypes.to_json.html_safe%>);
     add_filter(container.append('<p><b>Importance filter</b><ul></ul></p>'), 'importance', <%=@importances.to_json.html_safe%>);
@@ -304,8 +265,7 @@ jQuery(document).ready(function ($) {
           $(this).appendTo(container.find(css_class));
         });
       });
-      //Delete empty groups
-      $('.changelog-lines-container').find(".lines-group:not(:has(.changelog-line))").remove();
+      hide_empty();
     }
 
     group_by($('#grouping-select').val());
@@ -344,6 +304,9 @@ jQuery(document).ready(function ($) {
       $('.version-wrapper.maintenance-release.latest-branch').show();
 
       $('.version-wrapper.maintenance-release.not-latest-branch').toggle(!hide_support_branch_releases);
+
+      //Hide empty versions
+      $('.version-wrapper:not(:has(.lines-group:visible))').hide();
     });
 
     //Versions filter
@@ -413,6 +376,17 @@ jQuery(document).ready(function ($) {
     }
   }
 
+  function hide_empty() {
+    $('.version-wrapper').show();
+    $('.changelog-lines-container').find(".lines-group").show();
+    //Delete empty groups
+    $('.changelog-lines-container').find(".lines-group:not(:has(.changelog-line))").remove();
+    //Hide groups with no visible elements
+    $('.changelog-lines-container').find(".lines-group:not(:has(li.changelog-line:visible))").hide();
+    //Hide empty versions
+    $('.version-wrapper:not(:has(.lines-group:visible))').hide();
+  }
+
   $(document).on('change', 'input.changelog-filter-checkbox', function () {
 
     $('.changelog-line').each(function () {
@@ -440,31 +414,9 @@ jQuery(document).ready(function ($) {
         line.hide();
       }
     });
-
-    //Show all containers
-//    $('.changelog-lines-machine-header').show();
-//    $('.type-line-container').show();
-//    $('.version-wrapper').show();
-//    //Then hide empty types
-//    $('.type-line-container').each(function () {
-//      if ($(this).find('.changelog-line:visible').length === 0) {
-//        $(this).hide();
-//      }
-//    });
-////    $('.changelog-lines-machine').each(function () {
-////      var machine = $(this).data('machine');
-////      if ($(this).find('.type-line-container:visible').length === 0) {
-////        $(this).parent().find('.changelog-lines-machine-' + machine + '-header').hide();
-////      }
-////    });
-//    $('.version-wrapper').each(function () {
-//      if ($(this).find('.type-line-container:visible').length === 0) {
-//        $(this).hide();
-//      }
-//    });
+    hide_empty();
   });
 
-  //render_changelog($('fieldset.preview'));
   render_changelog($('.wiki.wiki-page'));
   render_dates($('.wiki.wiki-page'));
   sort_changelog_lines();
