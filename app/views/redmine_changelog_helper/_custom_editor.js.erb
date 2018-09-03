@@ -1,294 +1,298 @@
 jQuery(document).ready(function ($) {
-        var versions = [];
-
-        function ChangelogVersion(version, date, lines) {
-            lines = lines || []
-            this.version = version;
-            this.date = date;
-            this.entries = [];
-            var _this = this;
-            $.each(lines, function () {
-                var l = new ChangelogLine();
-                l.parse_values_from_textile(this);
-                _this.entries.push(l);
-            });
-            this.test = 'entries';
-
-            this.add_form_after = function () {
-                var f = $('#changelog-version-form').clone();
-                f.find('input[name="version_number"]').val(_this.version);
-                f.find('input[name="release_date"]').val(_this.date);
-                f.on('change', update_wiki);
-                f.show();
-                $.each(_this.entries, function () {
-                    this.add_form_to(f.find('.box'));
-                });
-                return f;
-            }
-            this.textillize_lines = function () {
-                var arr = [];
-                $.each(this.entries, function () {
-                    arr.push(this.textillize());
-                });
-                return arr;
-            };
-            this.textillize_date = function () {
-                var str = '';
-                if (this.date) {
-                    str = '\n\n' + this.date;
-                }
-                return str;
-            };
-            this.textillize = function () {
-                return "h2. " + this.version + this.textillize_date() + "\n\n" + this.textillize_lines().join("\n") + "\n\n----\n\n";
-            };
-
-        }
-
-        /**
-         * @param line Line as formatted by in Textile
-         */
-        function ChangelogLine() {
-            var _this = this;
-            this.machine = '';
-            this.type = '';
-            this.subtype = '';
-            this.importance = '';
-            this.details = '';
-
-            this.parse_values_from_textile = function (line) {
-                var regexp = /.*\[machine:(.*)\]\[type:(.*)\]\[subtype:(.*)\]\[importance:(.*)\]:([^]*)(?=\n.*?\n\n|$)/g;
-                var parts = regexp.exec(line);
-                if (parts !== null) {
-                    _this.machine = parts[1];
-                    _this.type = parts[2];
-                    _this.subtype = parts[3];
-                    _this.importance = parts[4];
-                    _this.details = parts[5];
-                }
-            };
-
-            this.textillize = function () {
-                return "* [machine:" + this.machine + "][type:" + this.type + "][subtype:" + this.subtype + "][importance:" + this.importance + "]:" + this.details;
-            };
-
-            this.add_form_to = function (target) {
-                var ef = $('#changelog-line-form').clone().appendTo(target);
-                if (_this.details) {
-                    var details_input = ef.find('textarea[name="changelog_details"]');
-                    details_input.val(_this.details);
-                }
-                if (_this.machine) {
-                    var machine_input = ef.find('select[name="changelog_machine"]');
-                    machine_input.val(_this.machine);
-                }
-                if (_this.type) {
-                    var type_input = ef.find('select[name="changelog_type"]');
-                    type_input.val(_this.type);
-                }
-                if (_this.subtype) {
-                    var subtype_input = ef.find('select[name="changelog_subtype"]');
-                    subtype_input.val(_this.subtype);
-                }
-                if (_this.importance) {
-                    var importance_input = ef.find('select[name="changelog_importance"]');
-                    importance_input.val(_this.importance);
-                }
-                ef.show();
-            };
-        }
-
-        //Initial content, before versions listing
-        var headings = '';
-
-        /**
-         * Initial scan of Wiki content
-         * Builds objects
-         */
-        function parse_wiki() {
-            var changelog = $('#wiki_form #content_text').text();
-            //Extract headings
-            //Text until the first h2 or end of wiki
-            var headings_re = /[^]*?(?=h2\.|$)+/g;
-            var parts = headings_re.exec(changelog);
-            if (parts != null && Array.isArray(parts) && parts.length > 0) {
-                headings = parts[0];
-            }
-            //Extract versions
-            //Text between a h2 and "----" or another h2
-            var regexp = /h2\.[\s\S]*?(?=\n.*?(h2\.)|[\-]{4}|$)/g;
-            var m;
-
-            do {
-                m = regexp.exec(changelog);
-                if (m) {
-                    var version_match = m[0];
-                    var version_header = version_parser(version_match);
-                    var release_date = date_parser(version_match)
-                    version_match = version_match.replace(release_date, '');
-                    //FIXME: Could use better regex matching
-                    var v = new ChangelogVersion(version_header, release_date, change_line_parser(version_match));
-                    versions.push(v);
-                }
-            } while (m);
-        }
-
-        function version_parser(version_text) {
-            var regexp_version_number = /h2\.\s*(\+?[\d|\.]+)/g;
-            var m = regexp_version_number.exec(version_text);
-            if (Array.isArray(m) && m.length > 1) {
-                return m[1];
-            }
-            //Else we just take the first line
-            version_text = version_text.split("\n")[0];
-            return version_text.replace('h2.', '').trim();
-        }
-
-        function date_parser(text) {
-            var re = /(\d{1,4}-\d{1,2}-\d{1,4})/g;
-            var m = re.exec(text);
-            if (Array.isArray(m) && m.length > 0) {
-                return m[1];
-            }
-            return '';
-        }
-
-        function change_line_parser(lines_string) {
-            var lines = [];
-            // Match start line until next line or en of version block(----)
-            var regexp_version_number = /\* \[machine:[\s\S]*?(?=\n.*?(\* \[machine:)|[\-]{4}|$)/g;
-            var m;
-            do {
-                m = regexp_version_number.exec(lines_string);
-                if (m) {
-                    lines.push(m[0]);
-                }
-            } while (m);
-            return lines;
-        }
 
 
-        $('#wiki_form .jstEditor').after('<div id="changelog-container"></div>');
-        //Only called once to make initial forms
-        function generate_forms() {
-            $.each(versions.reverse(), function () {
-                this.add_form_after().insertAfter('#changelog-container');
-            });
-        }
+      var versions = [];
 
-        $('#changelog-container').before('<div class="contextual">' +
-            '<a href="#" class="icon icon-add default-add-changelog-version">Add version</a>' +
-            '<a href="#" class="icon icon-move-top changelog-toggle-default-editor">Toggle default editor</a>' +
-            '</div>');
-
-        /**
-         * build objects based on HTML
-         */
-        function build_versions_from_html() {
-            versions = [];
-            $('.changelog-version-form:visible').each(function () {
-                var v = new ChangelogVersion($(this).find('input[name="version_number"]').val(), $(this).find('input[name="release_date"]').val(), []);
-                $(this).find('.changelog-line-form').each(function () {
-                    var l = new ChangelogLine();
-                    l.type = $(this).find('select[name="changelog_type"]').val();
-                    l.subtype = $(this).find('select[name="changelog_subtype"]').val();
-                    l.importance = $(this).find('select[name="changelog_importance"]').val();
-                    l.machine = $(this).find('select[name="changelog_machine"]').val();
-                    l.details = $(this).find('textarea[name="changelog_details"]').val();
-                    v.entries.push(l);
-                });
-                versions.push(v);
-            });
-        }
-
-        /**
-         * Sort changelog line to group them by machine
-         */
-        function sort_changelog_lines() {
-            $('.changelog-version-form:visible').each(function () {
-                    $(this).find('.changelog-line-form').sort(function (a, b) {
-                        var av = $(a).find('select[name="changelog_machine"]').val();
-                        var bv = $(b).find('select[name="changelog_machine"]').val();
-                        if (av < bv) return -1;
-                        if (av > bv) return 1;
-                        return 0;
-                    }).appendTo($(this));
-                }
-            );
-        }
-
-        function update_wiki() {
-            //Rebuild memory model first
-            build_versions_from_html();
-            $('#content_text').val('');
-            $.each(versions.reverse(), function () {
-                $('#content_text').val(this.textillize() + $('#content_text').val());
-            });
-
-            $('#content_text').val(headings + $('#content_text').val());
-        }
-
-        $('.changelog-version-form').on('change', update_wiki);
-
-        $(document).on('click', 'a.delete-changelog-line', function (event) {
-            $(this).closest('.changelog-line-form').remove();
-            update_wiki();
-            event.preventDefault();
+      function ChangelogVersion(version, date, lines) {
+        lines = lines || []
+        this.version = version;
+        this.date = date;
+        this.entries = [];
+        var _this = this;
+        $.each(lines, function () {
+          var l = new ChangelogLine();
+          l.parse_values_from_textile(this);
+          _this.entries.push(l);
         });
-        $(document).on('click', 'a.delete-changelog-version', function (event) {
-            $(this).closest('.changelog-version-form').remove();
-            update_wiki();
-            event.preventDefault();
+        this.test = 'entries';
+
+        this.add_form_after = function () {
+          var f = $('#changelog-version-form').clone();
+          f.find('input[name="version_number"]').val(_this.version);
+          f.find('input[name="release_date"]').val(_this.date);
+          f.on('change', update_wiki);
+          f.show();
+          $.each(_this.entries, function () {
+            this.add_form_to(f.find('.box'));
+          });
+
+          return f;
+        }
+        this.textillize_lines = function () {
+          var arr = [];
+          $.each(this.entries, function () {
+            arr.push(this.textillize());
+          });
+          return arr;
+        };
+        this.textillize_date = function () {
+          var str = '';
+          if (this.date) {
+            str = '\n\n' + this.date;
+          }
+          return str;
+        };
+        this.textillize = function () {
+          return "h2. " + this.version + this.textillize_date() + "\n\n" + this.textillize_lines().join("\n") + "\n\n----\n\n";
+        };
+
+      }
+
+      /**
+       * @param line Line as formatted by in Textile
+       */
+      function ChangelogLine() {
+        var _this = this;
+        this.machine = '';
+        this.type = '';
+        this.subtype = '';
+        this.importance = '';
+        this.details = '';
+
+        this.parse_values_from_textile = function (line) {
+          var regexp = /.*\[machine:(.*)\]\[type:(.*)\]\[subtype:(.*)\]\[importance:(.*)\]:([^]*)(?=\n.*?\n\n|$)/g;
+          var parts = regexp.exec(line);
+          if (parts !== null) {
+            _this.machine = parts[1];
+            _this.type = parts[2];
+            _this.subtype = parts[3];
+            _this.importance = parts[4];
+            _this.details = parts[5];
+          }
+        };
+
+        this.textillize = function () {
+          return "* [machine:" + this.machine + "][type:" + this.type + "][subtype:" + this.subtype + "][importance:" + this.importance + "]:" + this.details;
+        };
+
+        this.add_form_to = function (target) {
+          var ef = $('#changelog-line-form').clone().appendTo(target);
+          if (_this.details) {
+            var details_input = ef.find('textarea[name="changelog_details"]');
+            details_input.val(_this.details);
+          }
+          if (_this.machine) {
+            var machine_input = ef.find('select[name="changelog_machine"]');
+            machine_input.val(_this.machine);
+          }
+          if (_this.type) {
+            var type_input = ef.find('select[name="changelog_type"]');
+            type_input.val(_this.type);
+          }
+          if (_this.subtype) {
+            var subtype_input = ef.find('select[name="changelog_subtype"]');
+            subtype_input.val(_this.subtype);
+          }
+          if (_this.importance) {
+            var importance_input = ef.find('select[name="changelog_importance"]');
+            importance_input.val(_this.importance);
+          }
+          ef.show();
+
+        };
+      }
+
+      //Initial content, before versions listing
+      var headings = '';
+
+      /**
+       * Initial scan of Wiki content
+       * Builds objects
+       */
+      function parse_wiki() {
+        var changelog = $('#wiki_form #content_text').text();
+        //Extract headings
+        //Text until the first h2 or end of wiki
+        var headings_re = /[^]*?(?=h2\.|$)+/g;
+        var parts = headings_re.exec(changelog);
+        if (parts != null && Array.isArray(parts) && parts.length > 0) {
+          headings = parts[0];
+        }
+        //Extract versions
+        //Text between a h2 and "----" or another h2
+        var regexp = /h2\.[\s\S]*?(?=\n.*?(h2\.)|[\-]{4}|$)/g;
+        var m;
+
+        do {
+          m = regexp.exec(changelog);
+          if (m) {
+            var version_match = m[0];
+            var version_header = version_parser(version_match);
+            var release_date = date_parser(version_match)
+            version_match = version_match.replace(release_date, '');
+            //FIXME: Could use better regex matching
+            var v = new ChangelogVersion(version_header, release_date, change_line_parser(version_match));
+            versions.push(v);
+          }
+        } while (m);
+      }
+
+      function version_parser(version_text) {
+        var regexp_version_number = /h2\.\s*(\+?[\d|\.]+)/g;
+        var m = regexp_version_number.exec(version_text);
+        if (Array.isArray(m) && m.length > 1) {
+          return m[1];
+        }
+        //Else we just take the first line
+        version_text = version_text.split("\n")[0];
+        return version_text.replace('h2.', '').trim();
+      }
+
+      function date_parser(text) {
+        var re = /(\d{1,4}-\d{1,2}-\d{1,4})/g;
+        var m = re.exec(text);
+        if (Array.isArray(m) && m.length > 0) {
+          return m[1];
+        }
+        return '';
+      }
+
+      function change_line_parser(lines_string) {
+        var lines = [];
+        // Match start line until next line or en of version block(----)
+        var regexp_version_number = /\* \[machine:[\s\S]*?(?=\n.*?(\* \[machine:)|[\-]{4}|$)/g;
+        var m;
+        do {
+          m = regexp_version_number.exec(lines_string);
+          if (m) {
+            lines.push(m[0]);
+          }
+        } while (m);
+        return lines;
+      }
+
+
+      $('#wiki_form .jstEditor').after('<div id="changelog-container"></div>');
+      //Only called once to make initial forms
+      function generate_forms() {
+        $.each(versions.reverse(), function () {
+          this.add_form_after().insertAfter('#changelog-container');
         });
-        $(document).on('click', 'a.add-changelog-version', function (event) {
-            //Guess newer version number
-            var v = new ChangelogVersion('new version', new Date().toISOString().split('T')[0], '');
-            var called_from = $(this).closest('.changelog-version-form');
-            if (called_from) {
-                //FIXME: wrong check
-                var from_version = called_from.find('input[name="version_number"]').val();
-                if (from_version !== undefined) {
-                    var parts = from_version.split('.');
-                    var minor = parseInt(parts.pop());
-                    if (minor !== NaN) {
-                        minor += 1;
-                        parts.push(minor.toString());
-                        v.version = parts.join('.');
-                    }
-                }
+      }
+
+      $('#changelog-container').before('<div class="contextual">' +
+          '<a href="#" class="icon icon-add default-add-changelog-version">Add version</a>' +
+          '<a href="#" class="icon icon-move-top changelog-toggle-default-editor">Toggle default editor</a>' +
+          '</div>');
+
+      /**
+       * build objects based on HTML
+       */
+      function build_versions_from_html() {
+        versions = [];
+        $('.changelog-version-form:visible').each(function () {
+          var v = new ChangelogVersion($(this).find('input[name="version_number"]').val(), $(this).find('input[name="release_date"]').val(), []);
+          $(this).find('.changelog-line-form').each(function () {
+            var l = new ChangelogLine();
+            l.type = $(this).find('select[name="changelog_type"]').val();
+            l.subtype = $(this).find('select[name="changelog_subtype"]').val();
+            l.importance = $(this).find('select[name="changelog_importance"]').val();
+            l.machine = $(this).find('select[name="changelog_machine"]').val();
+            l.details = $(this).find('textarea[name="changelog_details"]').val();
+            v.entries.push(l);
+          });
+          versions.push(v);
+        });
+      }
+
+      /**
+       * Sort changelog line to group them by machine
+       */
+      function sort_changelog_lines() {
+        $('.changelog-version-form:visible').each(function () {
+              $(this).find('.changelog-line-form').sort(function (a, b) {
+                var av = $(a).find('select[name="changelog_machine"]').val();
+                var bv = $(b).find('select[name="changelog_machine"]').val();
+                if (av < bv) return -1;
+                if (av > bv) return 1;
+                return 0;
+              }).appendTo($(this));
             }
-            v.add_form_after().insertBefore($(this).closest('.changelog-version-form'));
-            event.preventDefault();
-        });
-        $(document).on('click', 'a.default-add-changelog-version', function (event) {
-            var v = new ChangelogVersion('new version', '');
-            v.add_form_after().prependTo($('#changelog-container'));
-            event.preventDefault();
-        });
-        $(document).on('click', 'a.add-changelog-line', function (event) {
-            var v = new ChangelogLine();
-            v.add_form_to($(this).closest('.box'));
-            event.preventDefault();
+        );
+      }
+
+      function update_wiki() {
+        //Rebuild memory model first
+        build_versions_from_html();
+        $('#content_text').val('');
+        $.each(versions.reverse(), function () {
+          $('#content_text').val(this.textillize() + $('#content_text').val());
         });
 
+        $('#content_text').val(headings + $('#content_text').val());
+      }
 
-        //Default editor visibility
+      $('.changelog-version-form').on('change', update_wiki);
 
-        function toggle_default_editor_visibility() {
-            $('body.controller-wiki.action-edit #wiki_form').find('.jstEditor,.jstElements').toggle();
+      $(document).on('click', 'a.delete-changelog-line', function (event) {
+        $(this).closest('.changelog-line-form').remove();
+        update_wiki();
+        event.preventDefault();
+      });
+      $(document).on('click', 'a.delete-changelog-version', function (event) {
+        $(this).closest('.changelog-version-form').remove();
+        update_wiki();
+        event.preventDefault();
+      });
+      $(document).on('click', 'a.add-changelog-version', function (event) {
+        //Guess newer version number
+        var v = new ChangelogVersion('new version', new Date().toISOString().split('T')[0], '');
+        var called_from = $(this).closest('.changelog-version-form');
+        if (called_from) {
+          //FIXME: wrong check
+          var from_version = called_from.find('input[name="version_number"]').val();
+          if (from_version !== undefined) {
+            var parts = from_version.split('.');
+            var minor = parseInt(parts.pop());
+            if (minor !== NaN) {
+              minor += 1;
+              parts.push(minor.toString());
+              v.version = parts.join('.');
+            }
+          }
         }
+        v.add_form_after().insertBefore($(this).closest('.changelog-version-form'));
+        event.preventDefault();
+      });
+      $(document).on('click', 'a.default-add-changelog-version', function (event) {
+        var v = new ChangelogVersion('new version', '');
+        v.add_form_after().prependTo($('#changelog-container'));
+        event.preventDefault();
+      });
+      $(document).on('click', 'a.add-changelog-line', function (event) {
+        var v = new ChangelogLine();
+        v.add_form_to($(this).closest('.box'));
+        event.preventDefault();
+      });
 
+
+      //Default editor visibility
+
+      function toggle_default_editor_visibility() {
+        $('body.controller-wiki.action-edit #wiki_form').find('.jstEditor,.jstElements').toggle();
+      }
+
+      toggle_default_editor_visibility();
+      $(document).on('click', 'a.changelog-toggle-default-editor', function (event) {
         toggle_default_editor_visibility();
-        $(document).on('click', 'a.changelog-toggle-default-editor', function (event) {
-            toggle_default_editor_visibility();
-            event.preventDefault();
-        });
+        event.preventDefault();
+      });
 
-        // Init
-        parse_wiki();
-        generate_forms();
-        console.log(versions);
-        sort_changelog_lines();
+      // Init
+      parse_wiki();
+      generate_forms();
+      console.log(versions);
+      sort_changelog_lines();
       $('input[name="version_head"]').trigger('change');
 
       function version_head_change() {

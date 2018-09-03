@@ -36,7 +36,7 @@ jQuery(document).ready(function ($) {
         text = text.substring(1);
       }
 
-      $(this).html('<b>' + subtype_key_to_string(subtype) +
+      $(this).html('<b style="float:right">' + type_key_to_string(type) + ' ' +
           importance_key_to_string(importance) + '</b> ' + text);
 
       $(this).data('machine-name', machine_key_to_string(machine));
@@ -47,6 +47,7 @@ jQuery(document).ready(function ($) {
       $(this).data('subtype', subtype);
       $(this).data('importance', importance);
 
+      $(this).css('padding-left', '4em');
       $(this).addClass('changelog-line');
       $(this).addClass('changelog-line-type-' + type);
       $(this).addClass('changelog-line-subtype-' + subtype);
@@ -58,10 +59,16 @@ jQuery(document).ready(function ($) {
   function render_dates(target) {
     target.find('.version-wrapper').each(function () {
       var date = $(this).find('p:first');
-      $(this).find('h2.changelog-version').data('date', date);
+      var date_value = date.text();
+      if (date_value == '0000-00-00') {
+        date_value = '>>>>>>>>>>>> IN PROGRESS <<<<<<<<<<<<<<<';
+      }
+
+      $(this).find('h2.changelog-version').data('date', date_value);
       $(this).find('h2.changelog-version').html(
-          $(this).find('h2.changelog-version').html() + ' <small><em class="version-date">' + date.html() + '</em></small>'
+          $(this).find('h2.changelog-version').html() + ' <small><em class="version-date">' + date_value + '</em></small>'
       );
+
       date.remove()
     });
   }
@@ -200,6 +207,7 @@ jQuery(document).ready(function ($) {
    * Sort changelog line to group them by machine
    */
   function sort_changelog_lines() {
+
     $('ul.changelog-lines-original-container').each(function () {
           $(this).find('li.changelog-line').sort(function (a, b) {
             var av = Object.keys(machine_map).indexOf($(a).data('machine'));
@@ -254,14 +262,23 @@ jQuery(document).ready(function ($) {
           var group = container.find('.' + css_class);
 
           if (group.length === 0) {
+            //Create a container for the group
             group = container.append('<div class="lines-group ' + css_class + '" data-label="' + label + '"><h4 class="lines-group-header">' + label + '</h4></div>');
+            //Containers for the sub-groups
+            for (var subgroup_code in subtype_map) {
+              subgroup_label = subtype_map[subgroup_code];
+              subgroup_css_class = 'subgroup-subtype-' + subgroup_code;
+              group.find('.' + css_class).append('<div class="lines-subgroup ' + subgroup_css_class + '" data-label="' + subgroup_label + '">' +
+                  '<h3>' + subgroup_label + '</h3>' +
+                  '</div>')
+            }
           } else {
             group.prepend('<h4 class="lines-group-header">' + label + '</h4>')
           }
         }
         container.find('.changelog-line').each(function () {
-          code = $(this).data(property);
-          css_class = '.group-' + property + '-' + code;
+          var code = $(this).data(property);
+          var css_class = '.group-' + property + '-' + code + ' .subgroup-subtype-' + $(this).data('subtype');
           $(this).appendTo(container.find(css_class));
         });
       });
@@ -272,16 +289,16 @@ jQuery(document).ready(function ($) {
     //Sorting
     container.append('<p><b>Sort by</b><ul><li>' +
         '<select id="sorting-select" name="sorting">' +
+        '<option value="importance">Priority</option>' +
         '<option value="machine">Machine type</option>' +
         '<option value="subtype">Machine sub-type</option>' +
-        '<option value="importance">Priority</option>' +
         '<option value="type">Type</option>' +
         '</select>' +
         '</li></ul></p>');
     $('#sorting-select').on('change', function () {
       var value = $(this).val();
       var values = Object.keys(eval(value + '_map'));
-      $('.lines-group').each(function () {
+      $('.lines-subgroup').each(function () {
         $(this).find('li.changelog-line').sort(function (a, b) {
           return values.indexOf($(a).data(value)) > values.indexOf($(b).data(value));
         }).appendTo($(this));
@@ -379,6 +396,8 @@ jQuery(document).ready(function ($) {
   function hide_empty() {
     $('.version-wrapper').show();
     $('.changelog-lines-container').find(".lines-group").show();
+    //Delete empty subgroups
+    $('.changelog-lines-container').find(".lines-subgroup:not(:has(.changelog-line))").remove();
     //Delete empty groups
     $('.changelog-lines-container').find(".lines-group:not(:has(.changelog-line))").remove();
     //Hide groups with no visible elements
