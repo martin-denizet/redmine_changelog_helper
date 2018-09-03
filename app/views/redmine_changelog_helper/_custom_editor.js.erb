@@ -289,6 +289,16 @@ jQuery(document).ready(function ($) {
         generate_forms();
         console.log(versions);
         sort_changelog_lines();
+      $('input[name="version_head"]').trigger('change');
 
+      function version_head_change() {
+        var container = $(this).closest('.changelog-version-form');
+        container.find('.release_date_container').toggle(!$(this).is(':checked'));
+        if ($(this).is(':checked')) {
+          container.find('input[name="release_date"]').val('0000-00-00');
+        }
+      }
+
+      $('input[name="version_head"]').on('change', version_head_change);
     }
 );
