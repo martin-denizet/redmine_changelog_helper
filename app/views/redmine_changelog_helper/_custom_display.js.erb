@@ -36,7 +36,7 @@ jQuery(document).ready(function ($) {
         text = text.substring(1);
       }
 
-      $(this).html('<b style="float:right">' + type_key_to_string(type) + ' ' +
+      $(this).html('<b class="type-importance-badge">' + type_key_to_string(type) + ' ' +
           importance_key_to_string(importance) + '</b> ' + text);
 
       $(this).data('machine-name', machine_key_to_string(machine));

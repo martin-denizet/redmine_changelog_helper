@@ -9,9 +9,22 @@
       <%= render partial: 'redmine_changelog_helper/custom_display', formats: 'js' %>
     </script>
     <style type="text/css">
-      .changelog-lines-container, h4.version-date{
+      .changelog-lines-container, h4.version-date {
         margin-left: 20px;
       }
+
+      #content h1, h2, h3, h4 {
+        color: #000;
+      }
+
+      .type-importance-badge {
+        float: right;
+        color: #555;
+              }
+
+        hr{
+          margin: 20px 0;
+        }
     </style>
 <% end %>
 <%= render partial: 'redmine_changelog_helper/wiki_edit_form' %>
