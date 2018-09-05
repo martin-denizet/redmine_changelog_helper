@@ -288,13 +288,7 @@ jQuery(document).ready(function ($) {
         event.preventDefault();
       });
 
-      // Init
-      parse_wiki();
-      generate_forms();
-      console.log(versions);
-      sort_changelog_lines();
-      $('input[name="version_head"]').trigger('change');
-
+      // Version in progress? hide release date
       function version_head_change() {
         var container = $(this).closest('.changelog-version-form');
         container.find('.release_date_container').toggle(!$(this).is(':checked'));
@@ -303,6 +297,21 @@ jQuery(document).ready(function ($) {
         }
       }
 
-      $('input[name="version_head"]').on('change', version_head_change);
+      // Init
+      parse_wiki();
+      generate_forms();
+      console.log(versions);
+      sort_changelog_lines();
+
+      $(document).on('change', 'input[name="version_head"]', version_head_change);
+      $('input[name="release_date"]').each(function () {
+            if ($(this).val() === '0000-00-00') {
+              $(this).closest('.changelog-version-form').find('input[name="version_head"]').prop('checked', true);
+            }
+          }
+      );
+      $('input[name="version_head"]').trigger('change');
+
+
     }
 );
