@@ -60,7 +60,7 @@ jQuery(document).ready(function ($) {
         this.details = '';
 
         this.parse_values_from_textile = function (line) {
-          var regexp = /.*\[machine:(.*)\]\[type:(.*)\]\[subtype:(.*)\]\[importance:(.*)\]:([^]*)(?=\n.*?\n\n|$)/g;
+          var regexp = /.*\[machine:(.*)\]\[type:(.*)\]\[subtype:(.*)\]\[importance:(.*)\]:[\ ]*([^]*)(?=\n.*?\n\n|$)/g;
           var parts = regexp.exec(line);
           if (parts !== null) {
             _this.machine = parts[1];
@@ -72,7 +72,7 @@ jQuery(document).ready(function ($) {
         };
 
         this.textillize = function () {
-          return "* [machine:" + this.machine + "][type:" + this.type + "][subtype:" + this.subtype + "][importance:" + this.importance + "]:" + this.details;
+          return "* [machine:" + this.machine + "][type:" + this.type + "][subtype:" + this.subtype + "][importance:" + this.importance + "]: " + this.details;
         };
 
         this.add_form_to = function (target) {
