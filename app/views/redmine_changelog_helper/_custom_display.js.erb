@@ -300,7 +300,9 @@ jQuery(document).ready(function ($) {
       var values = Object.keys(eval(value + '_map'));
       $('.lines-subgroup').each(function () {
         $(this).find('li.changelog-line').sort(function (a, b) {
-          return values.indexOf($(a).data(value)) > values.indexOf($(b).data(value));
+          var ai = values.indexOf($(a).data(value));
+          var bi = values.indexOf($(b).data(value));
+          return ai > bi ? 1 : ai < bi ? -1 : 0;
         }).appendTo($(this));
       });
     });
