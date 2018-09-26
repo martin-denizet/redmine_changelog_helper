@@ -60,7 +60,7 @@ jQuery(document).ready(function ($) {
         this.details = '';
 
         this.parse_values_from_textile = function (line) {
-          var regexp = /.*\[machine:(.*)\]\[type:(.*)\]\[subtype:(.*)\]\[importance:(.*)\]:[\ ]*([^]*)(?=\n.*?\n\n|$)/g;
+          var regexp = /.*\[machine:(.*)\]\[type:(.*)\]\[subtype:(.*)\]\[importance:([^\]]*)\]:[\ ]*([^]*)(?=\n.*?\n\n|$)/g;
           var parts = regexp.exec(line);
           if (parts !== null) {
             _this.machine = parts[1];
