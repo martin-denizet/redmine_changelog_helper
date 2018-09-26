@@ -9,6 +9,9 @@
       <%= render partial: 'redmine_changelog_helper/custom_display', formats: 'js' %>
     </script>
     <style type="text/css">
+      ul.changelog-lines-original-container{
+        display: none;
+      }
       .changelog-lines-container, h4.version-date {
         margin-left: 20px;
       }
@@ -17,7 +20,7 @@
         color: #000;
       }
       h4.lines-group-header{
-        padding-top: 3em;
+        padding-top: 1em;
       }
 
       .type-importance-badge {
