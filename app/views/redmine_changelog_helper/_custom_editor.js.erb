@@ -294,6 +294,8 @@ jQuery(document).ready(function ($) {
         container.find('.release_date_container').toggle(!$(this).is(':checked'));
         if ($(this).is(':checked')) {
           container.find('input[name="release_date"]').val('0000-00-00');
+          //Trigger change to update the textile
+          container.find('input[name="release_date"]').trigger('change');
         }
       }
 
