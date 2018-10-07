@@ -404,8 +404,10 @@ jQuery(document).ready(function ($) {
     $('.changelog-lines-container').find(".lines-group:not(:has(.changelog-line))").remove();
     //Hide groups with no visible elements
     $('.changelog-lines-container').find(".lines-group:not(:has(li.changelog-line:visible))").hide();
+    filter_versions();
     //Hide empty versions
     $('.version-wrapper:not(:has(.lines-group:visible))').hide();
+
   }
 
   $(document).on('change', 'input.changelog-filter-checkbox', function () {
@@ -442,5 +444,6 @@ jQuery(document).ready(function ($) {
   render_dates($('.wiki.wiki-page'));
   sort_changelog_lines();
   add_filters($('#sidebar'), $('.wiki.wiki-page'));
+  $('.version-wrapper').show();
 })
 ;
